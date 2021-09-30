@@ -1,9 +1,10 @@
 import aiopg.sa
+import logging
 from sqlalchemy import (
     MetaData, Table, Column, ForeignKey, Integer, String, Date, Float, JSON, and_
 )
 
-
+logger = logging.getLogger(__name__)
 meta = MetaData()
 
 location = Table(
@@ -56,7 +57,10 @@ async def get_location(engine, city, country_code):
             )
         )
         loc = await cursor.fetchone()
-        return dict(loc) if loc else None
+        loc = dict(loc) if loc else None
+        if loc:
+            logger.info(f'Get location {loc}')
+        return loc
 
 
 async def create_location(engine, data):
@@ -64,7 +68,9 @@ async def create_location(engine, data):
         loc = await conn.execute(
             location.insert().values(**data).returning(location)
         )
-        return await loc.fetchone()
+        loc = await loc.fetchone()
+        logger.info(f'Set location {loc}')
+        return loc
 
 
 async def create_weather(engine, data, location):
@@ -74,6 +80,7 @@ async def create_weather(engine, data, location):
             await conn.execute(
                 weather.insert().values(**_w)
             )
+        logger.info(f'Set weather {[w["dt"] for w in data]}')
 
 
 async def get_weather(engine, dt, location):
@@ -86,5 +93,7 @@ async def get_weather(engine, dt, location):
             )
         )
         w = await cursor.fetchone()
-        return dict(w) if w else None
-
+        w = dict(w) if w else None
+        if w:
+            logger.info(f'Get weather {w}')
+        return w

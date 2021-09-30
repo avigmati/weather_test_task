@@ -1,25 +1,13 @@
 import aiohttp
 from aiohttp import web
-from pydantic import BaseModel, validator
-from pydantic import ValidationError
+from pydantic import BaseModel, validator, ValidationError
 from datetime import datetime, timedelta
 import json
 import settings
 import db
-
-
-class GetLocationError(Exception):
-    pass
-
-
-class GetWeatherError(Exception):
-    pass
-
-
-class FetchError(Exception):
-    def __init__(self, code, data=None):
-        self.code = code
-        self.data = data
+from exceptions import GetWeatherError, GetLocationError, FetchError
+from utils import fetch
+import logging
 
 
 class Request(BaseModel):
@@ -56,16 +44,6 @@ class Request(BaseModel):
             raise ValueError('must be a string at least two characters long')
 
         return value.capitalize()
-
-
-async def fetch(session, url):
-    async with session.get(url) as response:
-        data = json.loads(await response.text())
-        if not response.status == 200:
-            raise FetchError(code=response.status, data=data)
-        if not data:
-            raise FetchError(code=404)
-        return data
 
 
 async def get_location(session, request, country_code, city):
@@ -140,6 +118,7 @@ app.add_routes([web.get('/', handle)])
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
     app['settings'] = settings
     app.cleanup_ctx.append(db.pg_context)
-    web.run_app(app)
+    web.run_app(app, port=8000)
