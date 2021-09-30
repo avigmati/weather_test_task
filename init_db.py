@@ -1,12 +1,12 @@
 from sqlalchemy import create_engine, MetaData
 
 import settings
-from db import location
+from db import location, weather
 
 
 def create_tables(engine):
     meta = MetaData()
-    meta.create_all(bind=engine, tables=[location, ])
+    meta.create_all(bind=engine, tables=[location, weather])
 
 
 if __name__ == '__main__':

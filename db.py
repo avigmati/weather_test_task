@@ -1,6 +1,6 @@
 import aiopg.sa
 from sqlalchemy import (
-    MetaData, Table, Column, ForeignKey, Integer, String, Date, Float, and_
+    MetaData, Table, Column, ForeignKey, Integer, String, Date, Float, JSON, and_
 )
 
 
@@ -14,6 +14,16 @@ location = Table(
     Column('country_code', String(2), nullable=False),
     Column('lat', Float(), nullable=False),
     Column('lon', Float(), nullable=False)
+)
+
+
+weather = Table(
+    'weather', meta,
+
+    Column('id', Integer, primary_key=True),
+    Column('location_id', Integer, ForeignKey('location.id', ondelete='CASCADE')),
+    Column('dt', Integer(), nullable=False),
+    Column('data', JSON(), nullable=False)
 )
 
 
@@ -45,13 +55,36 @@ async def get_location(engine, city, country_code):
                 )
             )
         )
-        record = await cursor.fetchone()
-        return dict(record) if record else None
+        loc = await cursor.fetchone()
+        return dict(loc) if loc else None
 
 
 async def create_location(engine, data):
     async with engine.acquire() as conn:
-        task = await conn.execute(
+        loc = await conn.execute(
             location.insert().values(**data).returning(location)
         )
-        return await task.fetchone()
+        return await loc.fetchone()
+
+
+async def create_weather(engine, data, location):
+    async with engine.acquire() as conn:
+        for w in data:
+            _w = {'dt': w['dt'], 'data': w, 'location_id': location['id']}
+            await conn.execute(
+                weather.insert().values(**_w)
+            )
+
+
+async def get_weather(engine, dt, location):
+    async with engine.acquire() as conn:
+        cursor = await conn.execute(weather.select().where(
+                and_(
+                    weather.c.location_id == location['id'],
+                    weather.c.dt == dt,
+                )
+            )
+        )
+        w = await cursor.fetchone()
+        return dict(w) if w else None
+
