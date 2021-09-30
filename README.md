@@ -33,3 +33,6 @@ $ python init_db.py
 ```shell
 $ python app.py
 ```
+
+## Request format
+```http://0.0.0.0:8000/?country_code=RU&city=Moscow&date=03.10.2021T12:11```
